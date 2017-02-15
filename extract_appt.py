@@ -1,3 +1,4 @@
+from collections import deque
 import copy
 import os
 import requests
@@ -20,6 +21,13 @@ class QuarterHour(object):
             result.inc()
             inc_amount -= 1
         return result
+
+    def fill_time(self, filled, inc_amount):
+        tmp = QuarterHour(self.h, self.m)
+        while inc_amount:
+            filled.append(unicode(tmp))
+            tmp.inc()
+            inc_amount -= 1
 
     def __repr__(self):
         h = self.h
@@ -65,20 +73,31 @@ bs = BeautifulSoup(r.text, 'html.parser')
 
 tbl = bs.find('table', {'class': 'AppBook'})
 days = {daynum: [] for daynum in range(7)}
+time_filled = {daynum: [] for daynum in range(7)}
+
 curr_time = QuarterHour(10, 0)
 for tr in tbl.find_all('tr')[1:]:
-    for i, td in enumerate(tr.find_all('td')):
-        daynum = i - 1
-        if td.get('class') and u'AppBookOn' in td['class']:
-            appt_text = extract_text(td)
-            appt_len = int(td.get('rowspan'))
-            appt_time = copy.copy(curr_time)
 
-            days[daynum].append({
-                'time': '{} - {}'.format(appt_time, appt_time.after(appt_len)),
-                'who': appt_text[1],
-                'what': appt_text[2] if len(appt_text) > 2 else '',
-            })
+    tds = deque(tr.find_all('td')[1:])
+    for daynum in range(7):
+        if not tds:
+            break
+
+        if unicode(curr_time) not in time_filled[daynum]:
+            td = tds.popleft()
+
+            if td.get('class') and u'AppBookOn' in td['class']:
+                appt_text = extract_text(td)
+                appt_len = int(td.get('rowspan'))
+                appt_time = copy.copy(curr_time)
+
+                days[daynum].append({
+                    'time': '{} - {}'.format(appt_time, appt_time.after(appt_len)),
+                    'who': appt_text[1],
+                    'what': appt_text[2] if len(appt_text) > 2 else '',
+                })
+
+                appt_time.fill_time(time_filled[daynum], appt_len)
 
     curr_time.inc()
 
