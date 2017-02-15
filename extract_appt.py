@@ -34,7 +34,7 @@ class QuarterHour(object):
         md = 'am' if h < 12 else 'pm'
         if h > 12:
             h -= 12
-        return '{0:2}:{1:02d}{2}'.format(h, self.m, md)
+        return '{0}:{1:02d}{2}'.format(h, self.m, md)
 
 def extract_text(tag):
     result = ''
@@ -72,7 +72,7 @@ r = s.get('http://100.37.113.8/employee/empappbook.asp')
 bs = BeautifulSoup(r.text, 'html.parser')
 
 tbl = bs.find('table', {'class': 'AppBook'})
-days = {daynum: [] for daynum in range(7)}
+days = {daynum: {'start': None, 'end': None, 'appts': []} for daynum in range(7)}
 time_filled = {daynum: [] for daynum in range(7)}
 
 curr_time = QuarterHour(10, 0)
@@ -86,12 +86,19 @@ for tr in tbl.find_all('tr')[1:]:
         if unicode(curr_time) not in time_filled[daynum]:
             td = tds.popleft()
 
+            if td and td.contents:
+                cell = unicode(td.contents[0])
+                if not days[daynum]['start'] and cell != u'<OFF>':
+                    days[daynum]['start'] = copy.copy(curr_time)
+                elif days[daynum]['start'] and not days[daynum]['end'] and cell == u'<OFF>':
+                    days[daynum]['end'] = copy.copy(curr_time)
+
             if td.get('class') and u'AppBookOn' in td['class']:
                 appt_text = extract_text(td)
                 appt_len = int(td.get('rowspan'))
                 appt_time = copy.copy(curr_time)
 
-                days[daynum].append({
+                days[daynum]['appts'].append({
                     'time': '{} - {}'.format(appt_time, appt_time.after(appt_len)),
                     'who': appt_text[1],
                     'what': appt_text[2] if len(appt_text) > 2 else '',
@@ -102,9 +109,10 @@ for tr in tbl.find_all('tr')[1:]:
     curr_time.inc()
 
 for daynum, dayname in day_of_week():
-    if days[daynum]:
-        print dayname
-        for appt in days[daynum]:
+    if days[daynum]['appts']:
+        print '{} [{} - {}]'.format(
+            dayname, days[daynum]['start'], days[daynum]['end'])
+        for appt in days[daynum]['appts']:
             print '    ' + appt['time']
             print '        ' + appt['who']
             if appt['what']:
