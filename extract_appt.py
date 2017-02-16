@@ -1,6 +1,7 @@
 from collections import deque
 import copy
 import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 
@@ -58,63 +59,79 @@ def day_of_week():
             (4, 'Thursday'),
             (5, 'Friday'),
             (6, 'Saturday')]
-s = requests.Session()
-r = s.get('http://100.37.113.8/login.asp')
 
-if 'RemoteBusiness - Login' in r.text:
-    login_data = {
-        'login': os.environ['SCHED_USER'],
-        'Password': os.environ['SCHED_PASS']
-    }
-    r = s.post('http://100.37.113.8/login.asp', data=login_data)
+def extract_appt_days(host, user, password):
+    s = requests.Session()
+    r = s.get('http://{}/login.asp'.format(host))
 
-r = s.get('http://100.37.113.8/employee/empappbook.asp')
-bs = BeautifulSoup(r.text, 'html.parser')
+    if 'RemoteBusiness - Login' in r.text:
+        login_data = {
+            'login': user,
+            'Password': password
+        }
+        r = s.post('http://{}/login.asp'.format(host), data=login_data)
 
-tbl = bs.find('table', {'class': 'AppBook'})
-days = {daynum: {'start': None, 'end': None, 'appts': []} for daynum in range(7)}
-time_filled = {daynum: [] for daynum in range(7)}
+    r = s.get('http://{}/employee/empappbook.asp'.format(host))
+    bs = BeautifulSoup(r.text, 'html.parser')
 
-curr_time = QuarterHour(10, 0)
-for tr in tbl.find_all('tr')[1:]:
+    tbl = bs.find('table', {'class': 'AppBook'})
+    days = {daynum: {'start': None, 'end': None, 'appts': []} for daynum in range(7)}
+    time_filled = {daynum: [] for daynum in range(7)}
 
-    tds = deque(tr.find_all('td')[1:])
-    for daynum in range(7):
-        if not tds:
-            break
+    curr_time = QuarterHour(10, 0)
+    for tr in tbl.find_all('tr')[1:]:
 
-        if unicode(curr_time) not in time_filled[daynum]:
-            td = tds.popleft()
+        tds = deque(tr.find_all('td')[1:])
+        for daynum in range(7):
+            if not tds:
+                break
 
-            if td and td.contents:
-                cell = unicode(td.contents[0])
-                if not days[daynum]['start'] and cell != u'<OFF>':
-                    days[daynum]['start'] = copy.copy(curr_time)
-                elif days[daynum]['start'] and not days[daynum]['end'] and cell == u'<OFF>':
-                    days[daynum]['end'] = copy.copy(curr_time)
+            if unicode(curr_time) not in time_filled[daynum]:
+                td = tds.popleft()
 
-            if td.get('class') and u'AppBookOn' in td['class']:
-                appt_text = extract_text(td)
-                appt_len = int(td.get('rowspan'))
-                appt_time = copy.copy(curr_time)
+                if td and td.contents:
+                    cell = unicode(td.contents[0])
+                    if not days[daynum]['start'] and cell != u'<OFF>':
+                        days[daynum]['start'] = copy.copy(curr_time)
+                    elif days[daynum]['start'] and not days[daynum]['end'] and cell == u'<OFF>':
+                        days[daynum]['end'] = copy.copy(curr_time)
 
-                days[daynum]['appts'].append({
-                    'time': '{} - {}'.format(appt_time, appt_time.after(appt_len)),
-                    'who': appt_text[1],
-                    'what': appt_text[2] if len(appt_text) > 2 else '',
-                })
+                if td.get('class') and u'AppBookOn' in td['class']:
+                    appt_text = extract_text(td)
+                    appt_len = int(td.get('rowspan'))
+                    appt_time = copy.copy(curr_time)
 
-                appt_time.fill_time(time_filled[daynum], appt_len)
+                    days[daynum]['appts'].append({
+                        'time': '{} - {}'.format(appt_time, appt_time.after(appt_len)),
+                        'who': appt_text[1],
+                        'what': appt_text[2] if len(appt_text) > 2 else '',
+                    })
 
-    curr_time.inc()
+                    appt_time.fill_time(time_filled[daynum], appt_len)
 
-for daynum, dayname in day_of_week():
-    if days[daynum]['appts']:
-        print '{} [{} - {}]'.format(
-            dayname, days[daynum]['start'], days[daynum]['end'])
-        for appt in days[daynum]['appts']:
-            print '    ' + appt['time']
-            print '        ' + appt['who']
-            if appt['what']:
-                print '        ' + appt['what']
-            print ''
+        curr_time.inc()
+
+    return days
+
+def output_days(days):
+    for daynum, dayname in day_of_week():
+        if days[daynum]['appts']:
+            print '{} [{} - {}]'.format(
+                dayname, days[daynum]['start'], days[daynum]['end'])
+            for appt in days[daynum]['appts']:
+                print '    ' + appt['time']
+                print '        ' + appt['who']
+                if appt['what']:
+                    print '        ' + appt['what']
+                print ''
+
+if __name__ == '__main__':
+    h = os.environ.get('SCHED_HOST')
+    u = os.environ.get('SCHED_USER')
+    p = os.environ.get('SCHED_PASS')
+
+    if not h or not u or not p:
+        print '$SCHED_HOST and $SCHED_USER and $SCHED_PASS must be defined'
+        sys.exit(1)
+
+    output_days(extract_appt_days(h, u, p))
