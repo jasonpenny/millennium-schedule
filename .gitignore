@@ -1,0 +1,8 @@
+*.pyc
+server_config.py
+flask_session/
+.Python
+bin/
+include/
+lib/
+pip-selfcheck.json

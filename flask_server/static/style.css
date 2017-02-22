@@ -1,0 +1,12 @@
+body {
+    background-color: #529ecc;
+    color: #ffffff;
+}
+input {
+    padding: 10px;
+    width: 90%;
+}
+input[type="submit"] {
+    border: 1px solid;
+    width: 100%;
+}

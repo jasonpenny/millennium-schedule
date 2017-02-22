@@ -51,7 +51,7 @@ def extract_text(tag):
                     result += c
     return [line for line in result.split('\n') if line != u'\xa0']
 
-def day_of_week():
+def days_of_week():
     return [(0, 'Sunday'),
             (1, 'Monday'),
             (2, 'Tuesday'),
@@ -98,7 +98,10 @@ def extract_appt_days(host, user, password):
 
                 if td.get('class') and u'AppBookOn' in td['class']:
                     appt_text = extract_text(td)
-                    appt_len = int(td.get('rowspan'))
+                    try:
+                        appt_len = int(td.get('rowspan'))
+                    except TypeError:
+                        appt_len = 1
                     appt_time = copy.copy(curr_time)
 
                     days[daynum]['appts'].append({
@@ -114,7 +117,7 @@ def extract_appt_days(host, user, password):
     return days
 
 def output_days(days):
-    for daynum, dayname in day_of_week():
+    for daynum, dayname in days_of_week():
         if days[daynum]['appts']:
             print '{} [{} - {}]'.format(
                 dayname, days[daynum]['start'], days[daynum]['end'])
@@ -125,7 +128,7 @@ def output_days(days):
                     print '        ' + appt['what']
                 print ''
 
-if __name__ == '__main__':
+def _main():
     h = os.environ.get('SCHED_HOST')
     u = os.environ.get('SCHED_USER')
     p = os.environ.get('SCHED_PASS')
@@ -135,3 +138,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     output_days(extract_appt_days(h, u, p))
+
+if __name__ == '__main__':
+    _main()

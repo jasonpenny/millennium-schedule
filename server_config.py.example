@@ -1,0 +1,2 @@
+SECRET_KEY = 'PUT SECRET HERE'
+SESSION_TYPE = 'filesystem'

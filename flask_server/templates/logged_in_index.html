@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<h1>Schedule</h1>
+{% for daynum, dayname in days_of_week %}
+
+    {% if days[daynum]['appts'] %}
+        <h3 id="day{{ daynum }}">{{ dayname }} [{{days[daynum]['start']}} - {{days[daynum]['end']}}]</h3>
+
+        {% for appt in days[daynum]['appts'] %}
+            <p>
+                {{ appt['time'] }}<br>
+                {{ appt['who'] }}{% if appt['what'] %}<br>
+                    {{ appt['what'] }}{% endif %}
+            </p>
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+<br>
+<br>
+<br>
+<br>
+<script>
+if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    var el = document.getElementById('day' + new Date().getDay());
+    if (el) {
+        setTimeout(function() {
+            el.scrollIntoView();
+        }, 50);
+    }
+}, false);
+</script>
+</body>
+</html>
