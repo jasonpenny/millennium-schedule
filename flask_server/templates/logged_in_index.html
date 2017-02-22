@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/static/app.js"></script>
 </head>
 <body>
 <h1>Schedule</h1>
@@ -23,19 +24,5 @@
 <br>
 <br>
 <br>
-<script>
-if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    var el = document.getElementById('day' + new Date().getDay());
-    if (el) {
-        setTimeout(function() {
-            el.scrollIntoView();
-        }, 50);
-    }
-}, false);
-</script>
 </body>
 </html>
