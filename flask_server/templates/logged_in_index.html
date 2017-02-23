@@ -3,9 +3,14 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google" content="notranslate" />
+    <link href="/static/logged_in_style.css" rel="stylesheet">
     <script src="/static/app.js"></script>
 </head>
 <body>
+<div id="nav">
+    <a href id='refresh-btn'>Refresh</a>
+    <a href="/logout" class="right">Logout</a>
+</div>
 <h1>Schedule</h1>
 {% for daynum, dayname in days_of_week %}
 

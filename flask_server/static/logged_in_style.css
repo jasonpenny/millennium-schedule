@@ -1,0 +1,29 @@
+* {
+    font-family: Helvetica, sans-serif;
+}
+h1 {
+    margin-top: 1em;
+}
+#nav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 2em;
+    background-color: #529ecc;
+    display: flex;
+}
+#nav a {
+    text-decoration: none;
+    align-self: center;
+    padding: 2px 6px;
+    border: solid 2px;
+    margin: 7px;
+    font-weight: 400;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+#nav a.right {
+    margin-left: auto;
+}
