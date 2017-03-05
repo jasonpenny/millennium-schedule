@@ -78,9 +78,15 @@ def extract_appt_days(host, user, password):
     days = {daynum: {'start': None, 'end': None, 'appts': []} for daynum in range(7)}
     time_filled = {daynum: [] for daynum in range(7)}
 
-    curr_time = QuarterHour(10, 0)
-    for tr in tbl.find_all('tr')[1:]:
+    rows = tbl.find_all('tr')
+    try:
+        start_td = rows[1].find('td')
+        start_time = int(start_td.contents[0][:2])
+        curr_time = QuarterHour(start_time, 0)
+    except ValueError:
+        curr_time = QuarterHour(10, 0)
 
+    for tr in rows[1:]:
         tds = deque(tr.find_all('td')[1:])
         for daynum in range(7):
             if not tds:
