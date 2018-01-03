@@ -1,5 +1,6 @@
 from collections import deque
 import copy
+from datetime import datetime, timedelta
 import os
 import sys
 import requests
@@ -80,6 +81,9 @@ def extract_appt_days(host, user, password):
 
     rows = tbl.find_all('tr')
     try:
+        start_date_td = rows[0].find('td').next_sibling.next_sibling
+        start_date_txt = start_date_td.contents[1].get_text()
+        start_date = datetime.strptime(start_date_txt, '%m/%d/%Y')
         start_td = rows[1].find('td')
         start_time = int(start_td.contents[0][:2])
         curr_time = QuarterHour(start_time, 0)
@@ -88,7 +92,11 @@ def extract_appt_days(host, user, password):
 
     for tr in rows[1:]:
         tds = deque(tr.find_all('td')[1:])
+        loop_date = start_date
         for daynum in range(7):
+            days[daynum]['date'] = loop_date
+            loop_date = loop_date + timedelta(days=1)
+
             if not tds:
                 break
 
@@ -125,6 +133,7 @@ def extract_appt_days(host, user, password):
 def output_days(days):
     for daynum, dayname in days_of_week():
         if days[daynum]['appts']:
+            print days[daynum]['date']
             print '{} [{} - {}]'.format(
                 dayname, days[daynum]['start'], days[daynum]['end'])
             for appt in days[daynum]['appts']:
