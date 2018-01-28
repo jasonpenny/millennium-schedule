@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import sys
-from extract_appt import extract_appt_days, days_of_week
+from extract_appt import extract_two_appt_days, days_of_week
 
 def _get_db_cursor_with_table():
     conn = sqlite3.connect('appts.db')
@@ -10,22 +10,23 @@ def _get_db_cursor_with_table():
     conn.commit()
     return conn
 
-def save_appts(days):
+def save_appts(tuple_of_days):
     conn = _get_db_cursor_with_table()
     c = conn.cursor()
 
-    for daynum, _ in days_of_week():
-        if days[daynum]['appts']:
-            dt = days[daynum]['date'].strftime('%Y-%m-%d')
+    for days in tuple_of_days:
+        for daynum, _ in days_of_week():
+            if days[daynum]['appts']:
+                dt = days[daynum]['date'].strftime('%Y-%m-%d')
 
-            c.execute('DELETE FROM appts WHERE dt = ?', (dt,))
+                c.execute('DELETE FROM appts WHERE dt = ?', (dt,))
 
-            for i, appt in enumerate(days[daynum]['appts']):
-                c.execute(
-                    'INSERT INTO appts (dt, seq, time, who, what) '
-                    'VALUES (?, ?, ?, ?, ?);',
-                    (dt, i + 1, appt['time'], appt['who'], appt.get('what', ''))
-                )
+                for i, appt in enumerate(days[daynum]['appts']):
+                    c.execute(
+                        'INSERT INTO appts (dt, seq, time, who, what) '
+                        'VALUES (?, ?, ?, ?, ?);',
+                        (dt, i + 1, appt['time'], appt['who'], appt.get('what', ''))
+                    )
 
     conn.commit()
     conn.close()
@@ -39,7 +40,7 @@ def _main():
         print '$SCHED_HOST and $SCHED_USER and $SCHED_PASS must be defined'
         sys.exit(1)
 
-    save_appts(extract_appt_days(h, u, p))
+    save_appts(extract_two_appt_days(h, u, p))
 
 if __name__ == '__main__':
     _main()

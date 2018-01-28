@@ -61,7 +61,7 @@ def days_of_week():
             (5, 'Friday'),
             (6, 'Saturday')]
 
-def extract_appt_days(host, user, password):
+def setup_requests_session(host, user, password):
     s = requests.Session()
     r = s.get('http://{}/login.asp'.format(host))
 
@@ -70,9 +70,30 @@ def extract_appt_days(host, user, password):
             'login': user,
             'Password': password
         }
-        r = s.post('http://{}/login.asp'.format(host), data=login_data)
+        s.post('http://{}/login.asp'.format(host), data=login_data)
+
+    return s
+
+def extract_appt_days(host, user, password):
+    s = setup_requests_session(host, user, password)
 
     r = s.get('http://{}/employee/empappbook.asp'.format(host))
+    days, _ = extract_appt_days_from_request(r)
+    return days
+
+def extract_two_appt_days(host, user, password):
+    s = setup_requests_session(host, user, password)
+
+    r = s.get('http://{}/employee/empappbook.asp'.format(host))
+    days, next_date = extract_appt_days_from_request(r)
+
+    r = s.post('http://{}/employee/empappbook.asp'.format(host),
+               data={'date': next_date.strftime('%m/%d/%Y'), 'submit': 'Go'})
+    next_days, _ = extract_appt_days_from_request(r)
+
+    return days, next_days
+
+def extract_appt_days_from_request(r):
     bs = BeautifulSoup(r.text, 'html.parser')
 
     tbl = bs.find('table', {'class': 'AppBook'})
@@ -128,7 +149,7 @@ def extract_appt_days(host, user, password):
 
         curr_time.inc()
 
-    return days
+    return days, loop_date
 
 def output_days(days):
     for daynum, dayname in days_of_week():
@@ -152,7 +173,9 @@ def _main():
         print '$SCHED_HOST and $SCHED_USER and $SCHED_PASS must be defined'
         sys.exit(1)
 
-    output_days(extract_appt_days(h, u, p))
+    days, next_days = extract_two_appt_days(h, u, p)
+    output_days(days)
+    output_days(next_days)
 
 if __name__ == '__main__':
     _main()
