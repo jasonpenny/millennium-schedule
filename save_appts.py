@@ -38,6 +38,9 @@ def output_ical():
     c = conn.cursor()
 
     cal = Calendar()
+    cal.add('prodid', '-//Work Appointments//sched.jasontpenny.com//')
+    cal.add('name', 'Work Appointments')
+    cal.add('x-wr-calname', 'Work Appointmens')
 
     sql = 'SELECT * FROM appts'
     for row in c.execute(sql):
