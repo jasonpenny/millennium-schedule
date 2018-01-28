@@ -1,6 +1,8 @@
+from datetime import datetime
 import os
 import sqlite3
 import sys
+from icalendar import Calendar, Event
 from extract_appt import extract_two_appt_days, days_of_week
 
 def _get_db_cursor_with_table():
@@ -31,6 +33,33 @@ def save_appts(tuple_of_days):
     conn.commit()
     conn.close()
 
+def output_ical():
+    conn = _get_db_cursor_with_table()
+    c = conn.cursor()
+
+    cal = Calendar()
+
+    sql = 'SELECT * FROM appts'
+    for row in c.execute(sql):
+        dt, _, time, who, what = row
+
+        start, end = time.split(' - ')
+        dtstart = datetime.strptime(dt + ' ' + start, '%Y-%m-%d %I:%M%p')
+        dtend = datetime.strptime(dt + ' ' + end, '%Y-%m-%d %I:%M%p')
+        summary = who
+        if what:
+            summary += ': ' + what
+
+        event = Event()
+        event.add('summary', summary)
+        event.add('dtstart', dtstart)
+        event.add('dtend', dtend)
+
+        cal.add_component(event)
+
+    with open('./flask_server/static/bc5fea56971f.ics', 'wb') as f:
+        f.write(cal.to_ical())
+
 def _main():
     h = os.environ.get('SCHED_HOST')
     u = os.environ.get('SCHED_USER')
@@ -41,6 +70,8 @@ def _main():
         sys.exit(1)
 
     save_appts(extract_two_appt_days(h, u, p))
+
+    output_ical()
 
 if __name__ == '__main__':
     _main()
