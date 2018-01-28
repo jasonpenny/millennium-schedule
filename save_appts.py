@@ -4,7 +4,7 @@ import sqlite3
 import sys
 import pytz
 from icalendar import Calendar, Event
-from extract_appt import extract_two_appt_days, days_of_week
+from extract_appt import extract_four_appt_days, days_of_week
 
 def _get_db_cursor_with_table():
     conn = sqlite3.connect('appts.db')
@@ -78,7 +78,7 @@ def _main():
         print '$SCHED_HOST and $SCHED_USER and $SCHED_PASS must be defined'
         sys.exit(1)
 
-    save_appts(extract_two_appt_days(h, u, p))
+    save_appts(extract_four_appt_days(h, u, p))
 
     output_ical()
 

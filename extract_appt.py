@@ -81,17 +81,20 @@ def extract_appt_days(host, user, password):
     days, _ = extract_appt_days_from_request(r)
     return days
 
-def extract_two_appt_days(host, user, password):
+def extract_four_appt_days(host, user, password):
     s = setup_requests_session(host, user, password)
 
     r = s.get('http://{}/employee/empappbook.asp'.format(host))
     days, next_date = extract_appt_days_from_request(r)
 
-    r = s.post('http://{}/employee/empappbook.asp'.format(host),
-               data={'date': next_date.strftime('%m/%d/%Y'), 'submit': 'Go'})
-    next_days, _ = extract_appt_days_from_request(r)
+    result = [days]
+    for _ in range(3):
+        r = s.post('http://{}/employee/empappbook.asp'.format(host),
+                   data={'date': next_date.strftime('%m/%d/%Y'), 'submit': 'Go'})
+        next_days, next_date = extract_appt_days_from_request(r)
+        result.append(next_days)
 
-    return days, next_days
+    return tuple(result)
 
 def extract_appt_days_from_request(r):
     bs = BeautifulSoup(r.text, 'html.parser')
@@ -173,9 +176,9 @@ def _main():
         print '$SCHED_HOST and $SCHED_USER and $SCHED_PASS must be defined'
         sys.exit(1)
 
-    days, next_days = extract_two_appt_days(h, u, p)
-    output_days(days)
-    output_days(next_days)
+    tuple_of_days = extract_four_appt_days(h, u, p)
+    for days in tuple_of_days:
+        output_days(days)
 
 if __name__ == '__main__':
     _main()
