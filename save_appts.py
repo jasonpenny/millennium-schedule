@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import sqlite3
 import sys
+import pytz
 from icalendar import Calendar, Event
 from extract_appt import extract_two_appt_days, days_of_week
 
@@ -37,6 +38,8 @@ def output_ical():
     conn = _get_db_cursor_with_table()
     c = conn.cursor()
 
+    NY = pytz.timezone('America/New_York')
+
     cal = Calendar()
     cal.add('prodid', '-//Work Appointments//sched.jasontpenny.com//')
     cal.add('name', 'Work Appointments')
@@ -47,8 +50,11 @@ def output_ical():
         dt, _, time, who, what = row
 
         start, end = time.split(' - ')
-        dtstart = datetime.strptime(dt + ' ' + start, '%Y-%m-%d %I:%M%p')
-        dtend = datetime.strptime(dt + ' ' + end, '%Y-%m-%d %I:%M%p')
+        dtstart = datetime.strptime(dt + ' ' + start, '%Y-%m-%d %I:%M%p') \
+                .replace(tzinfo=NY)
+        dtend = datetime.strptime(dt + ' ' + end, '%Y-%m-%d %I:%M%p') \
+                .replace(tzinfo=NY)
+
         summary = who
         if what:
             summary += ': ' + what
