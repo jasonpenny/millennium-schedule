@@ -8,3 +8,4 @@ lib/
 pip-selfcheck.json
 appts.db
 flask_server/static/bc5fea56971f.ics
+client_secret.json
