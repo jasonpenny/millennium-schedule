@@ -24,21 +24,10 @@ def save_appts(tuple_of_days, cal_id):
             if days[daynum]['appts']:
                 dt = days[daynum]['date'].strftime('%Y-%m-%d')
 
-                sql = 'SELECT * FROM appts WHERE dt = ? ORDER BY seq'
-                day_appts = {}
-                for row in c.execute(sql, (dt,)):
-                    dt, seq, time, who, what, eventid = row
-
-                    key = u'{}-{}-{}'.format(time, who, what)
-                    day_appts[key] = (seq, eventid)
+                c.execute('DELETE FROM appts WHERE dt = ?', (dt,))
+                day_appts = gcal_events_for_day(events, cal_id, dt)
 
                 for i, appt in enumerate(days[daynum]['appts']):
-                    key = u'{}-{}-{}'.format(appt['time'], appt['who'], appt.get('what', ''))
-                    if key in day_appts:
-                        # Event exists with the same info
-                        del day_appts[key]
-                        continue
-
                     summary = appt['who']
                     if appt.get('what'):
                         summary += ', ' + appt['what']
@@ -46,6 +35,18 @@ def save_appts(tuple_of_days, cal_id):
                     dtstart = datetime.strptime(dt + ' ' + start, '%Y-%m-%d %I:%M%p')
                     dtend = datetime.strptime(dt + ' ' + end, '%Y-%m-%d %I:%M%p')
 
+                    key = u'{}|{}'.format(appt['time'], summary)
+                    if key in day_appts:
+                        # Event exists with the same info
+                        c.execute(
+                            'INSERT INTO appts (dt, seq, time, who, what, eventid) '
+                            'VALUES (?, ?, ?, ?, ?, ?);',
+                            (dt, i + 1, appt['time'], appt['who'], appt.get('what', ''), day_appts[key])
+                        )
+                        del day_appts[key]
+                        continue
+
+                    # Event doesn't exist yet, put it in google calendar
                     event = gcal.add_event(events, cal_id, summary, dtstart, dtend)
 
                     c.execute(
@@ -55,16 +56,36 @@ def save_appts(tuple_of_days, cal_id):
                     )
 
                 if day_appts.keys():
-                    for seq, eventid in day_appts.values():
+                    for eventid in day_appts.values():
                         gcal.delete_event(events, cal_id, eventid)
-
-                        c.execute(
-                            'DELETE FROM appts WHERE dt = ? AND seq = ?',
-                            (dt, seq)
-                        )
 
     conn.commit()
     conn.close()
+
+def date_str_to_time_str(s):
+    dt = datetime.strptime(s, '%Y-%m-%dT%H:%M')
+    result = dt.strftime('%I:%M%p').lower()
+    if result[0] == '0':
+        return result[1:]
+
+    return result
+
+def gcal_events_for_day(events, cal_id, search_date):
+    eventlist = events.list(calendarId=cal_id,
+                            timeMin=search_date + 'T00:00:00Z',
+                            timeMax=search_date + 'T23:59:00Z').execute()
+    result = {}
+    for ev in eventlist['items']:
+        start = date_str_to_time_str(ev['start']['dateTime'][:16])
+        end = date_str_to_time_str(ev['end']['dateTime'][:16])
+
+        time = '{} - {}'.format(start, end)
+
+        what = ev['summary']
+        key = u'{}|{}'.format(time, what)
+        result[key] = ev['id']
+
+    return result
 
 # deprecated, google only updates from ical urls a few times per day.
 def output_ical():
