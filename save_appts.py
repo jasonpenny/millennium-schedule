@@ -71,19 +71,26 @@ def date_str_to_time_str(s):
     return result
 
 def gcal_events_for_day(events, cal_id, search_date):
-    eventlist = events.list(calendarId=cal_id,
-                            timeMin=search_date + 'T00:00:00Z',
-                            timeMax=search_date + 'T23:59:00Z').execute()
     result = {}
-    for ev in eventlist['items']:
-        start = date_str_to_time_str(ev['start']['dateTime'][:16])
-        end = date_str_to_time_str(ev['end']['dateTime'][:16])
+    pageToken = ''
+    while True:
+        eventlist = events.list(calendarId=cal_id,
+                                pageToken=pageToken,
+                                timeMin=search_date + 'T00:00:00Z',
+                                timeMax=search_date + 'T23:59:00Z').execute()
+        for ev in eventlist['items']:
+            start = date_str_to_time_str(ev['start']['dateTime'][:16])
+            end = date_str_to_time_str(ev['end']['dateTime'][:16])
 
-        time = '{} - {}'.format(start, end)
+            time = '{} - {}'.format(start, end)
 
-        what = ev['summary']
-        key = u'{}|{}'.format(time, what)
-        result[key] = ev['id']
+            what = ev['summary']
+            key = u'{}|{}'.format(time, what)
+            result[key] = ev['id']
+
+        pageToken = eventlist.get('nextPageToken', '')
+        if pageToken == '':
+            break
 
     return result
 
