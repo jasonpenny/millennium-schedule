@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import sqlite3
 import sys
@@ -71,13 +71,22 @@ def date_str_to_time_str(s):
     return result
 
 def gcal_events_for_day(events, cal_id, search_date):
+    start_date = datetime.strptime(search_date, '%Y-%m-%d')
+    end_date = start_date \
+            + timedelta(days=1) \
+            - timedelta(minutes=1)
+    time_min = start_date \
+            .replace(tzinfo=pytz.timezone('America/New_York')).isoformat('T')
+    time_max = end_date \
+            .replace(tzinfo=pytz.timezone('America/New_York')).isoformat('T')
+
     result = {}
     pageToken = ''
     while True:
         eventlist = events.list(calendarId=cal_id,
                                 pageToken=pageToken,
-                                timeMin=search_date + 'T00:00:00Z',
-                                timeMax=search_date + 'T23:59:00Z').execute()
+                                timeMin=time_min,
+                                timeMax=time_max).execute()
         for ev in eventlist['items']:
             start = date_str_to_time_str(ev['start']['dateTime'][:16])
             end = date_str_to_time_str(ev['end']['dateTime'][:16])
